@@ -220,7 +220,7 @@ if 'selected_order_mutu' not in st.session_state:
         'K500 Slump 12 ± 2'
     ]
 
-# Header
+# Header Aplikasi Web
 st.title("🏗️ Kalkulator & Evaluasi Kelayakan Harga Jual Readymix")
 st.caption("Batching Plant Retail & Project Financial Calculator")
 
@@ -541,7 +541,6 @@ with tab_customer_report:
         grand_total = total_dpp + ppn_11
         teks_terbilang = f"{terbilang(grand_total).strip()} Rupiah"
 
-        # Bangun Dokumen HTML Cetak Resmi yang otomatis memicu print/save as PDF
         rows_html = ""
         for _, r in df_order.iterrows():
             rows_html += f"""
@@ -556,6 +555,7 @@ with tab_customer_report:
             </tr>
             """
 
+        # Header surat penawaran dicetak rapi tanpa baris subjudul
         html_quotation = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -565,7 +565,6 @@ with tab_customer_report:
     body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; color: #1e293b; line-height: 1.5; }}
     .header {{ border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 24px; }}
     .title {{ font-size: 22px; font-weight: bold; color: #1e3a8a; margin: 0; }}
-    .sub {{ font-size: 13px; color: #64748b; margin-top: 4px; }}
     table.meta {{ margin-bottom: 24px; font-size: 14px; border-collapse: collapse; }}
     table.meta td {{ padding: 3px 0; }}
     table.items {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }}
@@ -581,7 +580,6 @@ with tab_customer_report:
 <body onload="window.print()">
     <div class="header">
         <h1 class="title">SURAT PENAWARAN HARGA BETON READYMIX</h1>
-        <div class="sub">Batching Plant: {p['nama_bp']} | Sistem Kelayakan Penawaran Retail & Proyek</div>
     </div>
 
     <table class="meta">
