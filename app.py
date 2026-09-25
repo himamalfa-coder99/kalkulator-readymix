@@ -25,7 +25,6 @@ st.markdown("""
         height: 42px !important;
     }
 
-    /* Perbaikan agar angka metric tidak terpotong (truncate) */
     [data-testid="stMetricValue"] > div {
         font-size: 1.35rem !important;
         white-space: normal !important;
@@ -261,7 +260,7 @@ with tab_setting:
     st.markdown("#### 🏢 Parameter Dasar Batching Plant")
     
     with st.form("form_plant"):
-        c1, c2, c3, c4 = st.columns([1.5, 1.2, 1.5, 1.1])
+        c1, c2, c3, c4, c5 = st.columns([1.5, 1.2, 1.4, 1.0, 1.1])
         nama_bp = c1.text_input("Unit Batching Plant", value=p['nama_bp'])
         kap_prod = c2.number_input("Kapasitas (m³)", value=float(p['kapasitas']), step=100.0)
         c2.markdown(f"<div class='val-helper'>🔍 {format_angka(kap_prod)} m³</div>", unsafe_allow_html=True)
@@ -269,7 +268,8 @@ with tab_setting:
         fc = c3.number_input("Biaya Tetap / FC (Rp)", value=float(p['fixed_cost']), step=1000000.0)
         c3.markdown(f"<div class='val-helper'>🔍 {rupiah(fc)}</div>", unsafe_allow_html=True)
 
-        margin_def = c4.number_input("Default Margin (%)", value=float(p['margin_std']), step=0.5)
+        margin_def = c4.number_input("Margin (%)", value=float(p['margin_std']), step=0.5)
+        komp_s = c5.number_input("Komponen S (%)", value=float(p.get('komponen_s', 1.0)), step=0.1, format="%.1f")
 
         d1, d2, d3, d4, d5 = st.columns([1.1, 1.3, 1.4, 1.2, 1.1])
         std_jarak = d1.number_input("Std Jarak (km)", value=float(p['jarak_std']), step=1.0)
@@ -286,7 +286,7 @@ with tab_setting:
         if simpan_params:
             st.session_state.plant_params.update({
                 'nama_bp': nama_bp, 'kapasitas': kap_prod, 'fixed_cost': fc,
-                'margin_std': margin_def, 'jarak_std': std_jarak,
+                'margin_std': margin_def, 'komponen_s': komp_s, 'jarak_std': std_jarak,
                 'koef_solar_jarak': koef_jrk, 'koef_solar_muatan': koef_muat,
                 'harga_solar': hrg_solar, 'kapasitas_tm_std': kap_tm
             })
@@ -316,7 +316,6 @@ with tab_setting:
     df_editor_source = df_editor_source[cols_to_display]
     df_editor_source['No.'] = range(1, len(df_editor_source) + 1)
 
-    # Mutu Beton LEBAR, COGM & Efisiensi FIT
     edited_master_df = st.data_editor(
         df_editor_source,
         use_container_width=True,
@@ -326,7 +325,7 @@ with tab_setting:
         column_config={
             'No.': st.column_config.NumberColumn(
                 label="No.",
-                width="small",
+                width=45,
                 disabled=True
             ),
             'Mutu Beton': st.column_config.SelectboxColumn(
@@ -363,7 +362,6 @@ with tab_setting:
         st.success("Tabel Master Mutu Beton berhasil diperbarui!")
         st.session_state['master_saved_success'] = False
 
-# Mapping Master Aktif
 active_master_dict = {}
 for r in st.session_state.master_table_data:
     if r.get('Mutu Beton'):
@@ -399,15 +397,15 @@ with tab_evaluasi:
             slump_req = st.number_input("Slump Diminta (cm)", min_value=0.0, value=15.0, step=1.0)
             muatan_req = st.number_input("Muatan per Rit (m³)", min_value=1.0, max_value=10.0, value=4.0, step=1.0)
 
-    # Deviasi Biaya (A, B, C)
+    # Deviasi Biaya (A, B, C) Persis Formula Excel:
     selisih_jarak = max(0.0, jarak_proyek - p['jarak_std'])
-    biaya_tambah_jarak = round((selisih_jarak * p['koef_solar_jarak'] * p['harga_solar']) / 100.0) * 100.0
+    biaya_tambah_jarak = selisih_jarak * p['koef_solar_jarak'] * p['harga_solar']
 
     selisih_slump = max(0.0, slump_req - p['slump_std'])
-    biaya_tambah_slump = round(selisih_slump * 20000.0)
+    biaya_tambah_slump = selisih_slump * 20000.0
 
     selisih_muatan = max(0.0, p['kapasitas_tm_std'] - muatan_req)
-    biaya_tambah_muatan = round(selisih_muatan * p['koef_solar_muatan'])
+    biaya_tambah_muatan = selisih_muatan * p['koef_solar_muatan']
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Biaya Solar Jarak (A)", rupiah(biaya_tambah_jarak), f"+{selisih_jarak:.1f} km dari std")
@@ -438,17 +436,19 @@ with tab_evaluasi:
         cols_grid[5].markdown("**HPP (Rp/m³)**")
 
         default_vol_map = {
-            'K100 Slump 12 ± 2': 500.0,
-            'K250 Slump 12 ± 2': 700.0,
-            'K350 Slump 12 ± 2': 600.0,
+            'K100 Slump 12 ± 2': 1000.0,
+            'K250 Slump 12 ± 2': 1000.0,
+            'K350 Slump 12 ± 2': 1000.0,
             'K500 Slump 12 ± 2': 1000.0
         }
         default_price_map = {
-            'K100 Slump 12 ± 2': 1150000.0,
-            'K250 Slump 12 ± 2': 1250000.0,
-            'K350 Slump 12 ± 2': 1395000.0,
-            'K500 Slump 12 ± 2': 1415000.0
+            'K100 Slump 12 ± 2': 1165000.0,
+            'K250 Slump 12 ± 2': 1275000.0,
+            'K350 Slump 12 ± 2': 1383000.0,
+            'K500 Slump 12 ± 2': 1403000.0
         }
+
+        persen_komp_s = p.get('komponen_s', 1.0) / 100.0
 
         item_no = 1
         for prod_name in pilihan_mutu:
@@ -485,17 +485,19 @@ with tab_evaluasi:
                 )
 
             with col_d:
-                init_vol = default_vol_map.get(prod_name, 100.0)
+                init_vol = default_vol_map.get(prod_name, 1000.0)
                 vol = st.number_input(f"Vol {prod_name}", min_value=0.0, value=init_vol, step=10.0, key=f"v_{prod_name}", label_visibility="collapsed")
 
             with col_e:
                 if mode_harga == "Otomatis (Standar Margin Target %)":
                     margin_input = st.number_input(f"Margin {prod_name}", value=p['margin_std'], step=0.5, key=f"m_{prod_name}", label_visibility="collapsed")
-                    harga_jual = round(hpp / (1 - (margin_input / 100.0)) / 1000.0) * 1000.0 if (1 - (margin_input / 100.0)) > 0 else 0
+                    # ROUNDUP ke ribuan terdekat sesuai Excel
+                    raw_harga = (hpp / (1 - (margin_input / 100.0))) if (1 - (margin_input / 100.0)) > 0 else 0
+                    harga_jual = math.ceil(raw_harga / 1000.0) * 1000.0
                     st.caption(f"💡 {rupiah(harga_jual)}")
                 else:
                     init_price = default_price_map.get(prod_name, round(hpp * 1.08, -3))
-                    harga_jual = st.number_input(f"Harga Custom {prod_name}", value=init_price, step=5000.0, key=f"hc_{prod_name}", label_visibility="collapsed")
+                    harga_jual = st.number_input(f"Harga Custom {prod_name}", value=init_price, step=1000.0, key=f"hc_{prod_name}", label_visibility="collapsed")
                     margin_input = ((harga_jual - hpp) / harga_jual * 100.0) if harga_jual > 0 else 0.0
                     st.caption(f"💡 {rupiah(harga_jual)} ({margin_input:.1f}%)")
 
@@ -503,10 +505,12 @@ with tab_evaluasi:
                 st.write(rupiah(hpp))
 
             if vol > 0:
+                # Rumus Sesuai Lembar Excel Foto 3:
                 margin_kontribusi = harga_jual - hpp
                 total_mk = vol * margin_kontribusi
+                biaya_komp_s = persen_komp_s * harga_jual * vol
                 proporsional_fc = (p['fixed_cost'] / p['kapasitas']) * vol
-                laba_prop = total_mk - proporsional_fc
+                laba_prop = total_mk - proporsional_fc - biaya_komp_s
                 
                 if harga_jual <= hpp:
                     status = "❌ Tolak / Rugi Variabel"
@@ -528,7 +532,9 @@ with tab_evaluasi:
                     'Margin (%)': margin_input,
                     'Vol Order (m³)': vol,
                     'Harga Jual': harga_jual,
+                    'Margin Kontribusi (Rp/m³)': margin_kontribusi,
                     'Total Margin Kontribusi': total_mk,
+                    'Biaya Komponen S (Rp)': biaya_komp_s,
                     'Laba Operasi Proporsional Proyek (Rp)': laba_prop,
                     'Status': status,
                     'BEP Volume (m³)': bep_vol,
@@ -546,14 +552,19 @@ with tab_evaluasi:
             tot_vol = df_order['Vol Order (m³)'].sum()
             tot_pendapatan = df_order['Total Pendapatan (Rp)'].sum()
             tot_mk = df_order['Total Margin Kontribusi'].sum()
-            tot_biaya = df_order['Total Biaya Variabel'].sum() + p['fixed_cost']
+            tot_var = df_order['Total Biaya Variabel'].sum()
+            tot_komp_s = df_order['Biaya Komponen S (Rp)'].sum()
+            
+            # Total Biaya & Laba Operasi Persis Sesuai Excel Foto 3:
+            tot_biaya = tot_var + p['fixed_cost'] + tot_komp_s
             laba_bersih = tot_pendapatan - tot_biaya
 
-            k1, k2, k3, k4 = st.columns(4)
+            k1, k2, k3, k4, k5 = st.columns([1.3, 1.2, 1.2, 1.2, 1.1])
             k1.metric("Total Pendapatan", rupiah(tot_pendapatan), f"Volume: {format_angka(tot_vol)} m³")
-            k2.metric("Total Margin Kontribusi", rupiah(tot_mk), f"{(tot_mk/tot_pendapatan*100):.1f}% Omzet")
-            k3.metric("Laba Operasi", rupiah(laba_bersih))
-            k4.metric("Status Kelayakan", "Sangat Layak" if laba_bersih >= 0 else ("Layak (Bantu FC)" if tot_mk > 0 else "Tolak"))
+            k2.metric("Margin Kontribusi", rupiah(tot_mk), f"{(tot_mk/tot_pendapatan*100):.1f}% Omzet")
+            k3.metric("Biaya Komponen S", rupiah(tot_komp_s), f"{p.get('komponen_s', 1.0):.1f}% Omzet")
+            k4.metric("Laba Operasi", rupiah(laba_bersih))
+            k5.metric("Kelayakan", "Sangat Layak" if laba_bersih >= 0 else ("Layak (Bantu FC)" if tot_mk > 0 else "Tolak"))
 
             st.markdown("##### Tabel Evaluasi Kelayakan per Produk:")
             df_view = df_order[[
@@ -565,7 +576,8 @@ with tab_evaluasi:
                 'HPP', 
                 'Harga Jual', 
                 'Margin (%)', 
-                'Total Margin Kontribusi', 
+                'Total Margin Kontribusi',
+                'Biaya Komponen S (Rp)',
                 'Laba Operasi Proporsional Proyek (Rp)', 
                 'Status', 
                 'BEP Volume (m³)', 
@@ -576,6 +588,7 @@ with tab_evaluasi:
             df_view['HPP'] = df_view['HPP'].apply(rupiah)
             df_view['Harga Jual'] = df_view['Harga Jual'].apply(rupiah)
             df_view['Total Margin Kontribusi'] = df_view['Total Margin Kontribusi'].apply(rupiah)
+            df_view['Biaya Komponen S (Rp)'] = df_view['Biaya Komponen S (Rp)'].apply(rupiah)
             df_view['Laba Operasi Proporsional Proyek (Rp)'] = df_view['Laba Operasi Proporsional Proyek (Rp)'].apply(rupiah)
             df_view['Margin (%)'] = df_view['Margin (%)'].apply(lambda x: f"{x:.1f}%")
             df_view['BEP Volume (m³)'] = df_view['BEP Volume (m³)'].apply(lambda x: f"{format_angka(x)} m³")
@@ -685,7 +698,7 @@ with tab_customer_report:
             <li>Harga beton di atas sudah termasuk pajak PPN 11%.</li>
             <li>Pihak pembeli bertanggung jawab terhadap kelayakan jalan, keamanan untuk dilalui truk mixer.</li>
             <li>Pembuatan benda uji dilakukan sesuai standar Batching Plant.</li>
-            <li>Pembayaran dapat dilakukan dengan transfer ke nomor rekening: <b>0710201400001</b> a.n. <b>PT. Waskita Beton Precast Tbk</b>, <b>Bank BJB Jabar dan Banten</b>.</li>
+            <li>Pembayaran dapat dilakukan dengan transfer ke nomor rekening: **0710201400001** a.n. **PT. Waskita Beton Precast Tbk**, **Bank BJB Jabar dan Banten**.</li>
         </ol>
     </div>
 </body>
@@ -768,7 +781,6 @@ with tab_customer_report:
         """, unsafe_allow_html=True)
 
         st.markdown("---")
-        # Menggunakan format bold markdown standar **teks** agar tampil bersih
         st.markdown("""
         **Catatan:**
         1. Harga beton di atas sudah termasuk pajak PPN 11%.
