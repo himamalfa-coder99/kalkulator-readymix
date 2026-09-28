@@ -3,53 +3,67 @@ import pandas as pd
 import math
 import base64
 import os
+from datetime import datetime
 
 st.set_page_config(
     page_title="Kalkulator Kelayakan Harga Jual Retail Beton Readymix",
-    page_icon="🏗️",
+    page_icon="🚛",
     layout="wide"
 )
 
 # ==============================================================================
-# FUNGSI MEMBACA FOTO LOKAL SEBAGAI BACKGROUND
+# FUNGSI MEMBACA GAMBAR & BACKGROUND
 # ==============================================================================
+def find_image_file(candidates):
+    for filename in candidates:
+        if os.path.exists(filename):
+            return filename
+    return None
+
+def get_base64_image(image_path):
+    if image_path and os.path.exists(image_path):
+        with open(image_path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return None
+
 def set_background(image_file):
-    """Memasang file gambar lokal sebagai background seluruh halaman web."""
-    if os.path.exists(image_file):
-        with open(image_file, "rb") as f:
-            encoded_string = base64.b64encode(f.read()).decode()
-        
-        # Ekstensi file
-        ext = image_file.split('.')[-1]
-        
+    encoded_string = get_base64_image(image_file)
+    if encoded_string:
+        ext = image_file.split('.')[-1].lower()
+        if ext == 'jpg': ext = 'jpeg'
         st.markdown(f"""
-        <style>
-            .stApp {{
-                background: linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)), 
-                            url("data:image/{ext};base64,{encoded_string}");
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
-                background-attachment: fixed;
-            }}
-            /* Tambahan transparansi pada sidebar */
-            [data-testid="stSidebar"] {{
-                background-color: rgba(248, 250, 252, 0.92) !important;
-            }}
-        </style>
-        """, unsafe_allow_html=True)
+<style>
+    .stApp {{
+        background: linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)), 
+                    url("data:image/{ext};base64,{encoded_string}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    [data-testid="stSidebar"] {{
+        background-color: rgba(248, 250, 252, 0.95) !important;
+    }}
+</style>
+""", unsafe_allow_html=True)
 
-# Nama file gambar (sesuaikan dengan nama file fotomu, misal background.jpg atau background.png)
-NAMA_FILE_FOTO = "background.jpg"
-set_background(NAMA_FILE_FOTO)
+FILE_BG = find_image_file(["background.jpg", "background.png", "background.jpeg", "bg.jpg", "bg.png"])
+if FILE_BG:
+    set_background(FILE_BG)
+
+FILE_LOGO = find_image_file([
+    "logo_mixer.png", "logo_mixer.jpg", "logo_mixer.jpeg", 
+    "logo.png", "logo.jpg", "mixer.png", "mixer.jpg", 
+    "truk.png", "truk.jpg", "truk_mixer.png", "truk_mixer.jpg"
+])
+
+logo_base64 = get_base64_image(FILE_LOGO)
 
 # ==============================================================================
-# SISTEM PROTEKSI PASSWORD / LOGIN
+# PROTEKSI LOGIN
 # ==============================================================================
 def check_password():
-    """Mengembalikan True jika user sudah berhasil login dengan password yang benar."""
-    PASSWORD_RAHASIA = "123"  # Silakan ganti kata sandi ini sesuai kebutuhan
-
+    PASSWORD_RAHASIA = "waskita123"
     if st.session_state.get("authenticated", False):
         return True
 
@@ -57,12 +71,18 @@ def check_password():
     col_kiri, col_tengah, col_kanan = st.columns([1, 1.2, 1])
     
     with col_tengah:
-        st.markdown("""
-        <div style='background: rgba(255, 255, 255, 0.95); border: 1px solid #cbd5e1; border-radius: 12px; padding: 28px 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>
-            <h3 style='text-align: center; color: #1e3a8a; margin-top: 0;'>🔒 Akses Terbatas</h3>
-            <p style='text-align: center; color: #64748b; font-size: 14px;'>Silakan masukkan password untuk membuka Kalkulator Kelayakan Harga Readymix</p>
-        </div>
-        """, unsafe_allow_html=True)
+        logo_html = ""
+        if logo_base64 and FILE_LOGO:
+            ext_l = FILE_LOGO.split('.')[-1].lower()
+            if ext_l == 'jpg': ext_l = 'jpeg'
+            logo_html = f"<div style='text-align: center; margin-bottom: 12px;'><img src='data:image/{ext_l};base64,{logo_base64}' style='height: 75px; object-fit: contain;'></div>"
+        
+        box_card_html = f"""<div style='background: rgba(255, 255, 255, 0.98); border: 1px solid #cbd5e1; border-radius: 12px; padding: 24px 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 15px;'>
+{logo_html}
+<h3 style='text-align: center; color: #1e3a8a; margin: 0 0 6px 0; font-size: 1.3rem;'>🔒 Akses Terbatas</h3>
+<p style='text-align: center; color: #475569; font-size: 13.5px; margin: 0;'>Silakan masukkan password untuk membuka Kalkulator Kelayakan Harga Readymix</p>
+</div>"""
+        st.markdown(box_card_html, unsafe_allow_html=True)
         
         with st.form("form_login"):
             input_pwd = st.text_input("Password", type="password", placeholder="Masukkan password...")
@@ -81,49 +101,39 @@ if not check_password():
     st.stop()
 
 # ==============================================================================
-# APLIKASI UTAMA (SETELAH BERHASIL LOGIN)
+# STYLING CSS
 # ==============================================================================
-
-# Styling CSS Bersih, Proporsional, & Perbaikan Font Metric
 st.markdown("""
 <style>
     .block-container {
-        padding-top: 1.8rem !important;
+        padding-top: 1.2rem !important;
         padding-bottom: 2rem !important;
         max-width: 96% !important;
     }
-    
     [data-testid="InputInstructions"] {
         display: none !important;
     }
-    
     .stNumberInput input, .stTextInput input {
         height: 42px !important;
-        background-color: rgba(255, 255, 255, 0.95) !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        -webkit-text-fill-color: #0f172a !important;
+        font-weight: 600 !important;
+        border: 1px solid #cbd5e1 !important;
     }
-
+    .stNumberInput button {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    .stNumberInput label, .stTextInput label, .stSelectbox label, .stMultiSelect label {
+        font-weight: 600 !important;
+    }
     [data-testid="stMetricValue"] > div {
         font-size: 1.35rem !important;
         white-space: normal !important;
         text-overflow: unset !important;
         word-break: break-word !important;
         font-weight: 700 !important;
-    }
-    [data-testid="stMetricLabel"] > div {
-        font-size: 0.88rem !important;
-        color: #475569 !important;
-    }
-    [data-testid="stMetricDelta"] > div {
-        font-size: 0.82rem !important;
-    }
-
-    .metric-card {
-        background: rgba(248, 250, 252, 0.95);
-        border-radius: 8px;
-        padding: 12px 16px;
-        border-left: 4px solid #2563eb;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-        margin-bottom: 10px;
     }
     .info-table {
         width: 100%;
@@ -133,21 +143,9 @@ st.markdown("""
         font-size: 14px;
         line-height: 1.6;
     }
-    .info-table td.label-col {
-        width: 160px;
-        font-weight: 600;
-        vertical-align: top;
-    }
-    .info-table td.sep-col {
-        width: 20px;
-        font-weight: 600;
-        text-align: center;
-        vertical-align: top;
-    }
-    .info-table td.val-col {
-        vertical-align: top;
-        font-weight: 500;
-    }
+    .info-table td.label-col { width: 160px; font-weight: 600; vertical-align: top; }
+    .info-table td.sep-col { width: 20px; font-weight: 600; text-align: center; vertical-align: top; }
+    .info-table td.val-col { vertical-align: top; font-weight: 500; }
     .info-box-wrapper {
         background-color: rgba(240, 247, 255, 0.95);
         border: 1px solid #bfdbfe;
@@ -161,6 +159,7 @@ st.markdown("""
         border-radius: 8px;
         padding: 14px 18px;
         margin-top: 10px;
+        color: #0f172a !important;
     }
     .terbilang-box {
         background-color: rgba(239, 246, 255, 0.95);
@@ -173,10 +172,17 @@ st.markdown("""
     }
     .val-helper {
         font-size: 12px;
-        color: #0369a1;
+        color: #0284c7;
         font-weight: 600;
         margin-top: 3px;
         margin-bottom: 6px;
+    }
+    .main-title-text {
+        font-size: 1.95rem;
+        font-weight: 800;
+        line-height: 1.25;
+        margin: 0;
+        padding: 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -190,8 +196,7 @@ def rupiah(val):
 def format_angka(val, decimal=0):
     try:
         if decimal > 0:
-            formatted = f"{val:,.{decimal}f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            return formatted
+            return f"{val:,.{decimal}f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f"{round(val):,.0f}".replace(",", ".")
     except:
         return "-"
@@ -199,26 +204,16 @@ def format_angka(val, decimal=0):
 def terbilang(n):
     satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"]
     n = int(round(n))
-    if n < 12:
-        return satuan[n]
-    elif n < 20:
-        return terbilang(n - 10) + " Belas"
-    elif n < 100:
-        return terbilang(n // 10) + " Puluh " + terbilang(n % 10)
-    elif n < 200:
-        return "Seratus " + terbilang(n - 100)
-    elif n < 1000:
-        return terbilang(n // 100) + " Ratus " + terbilang(n % 100)
-    elif n < 2000:
-        return "Seribu " + terbilang(n - 1000)
-    elif n < 1000000:
-        return terbilang(n // 1000) + " Ribu " + terbilang(n % 1000)
-    elif n < 1000000000:
-        return terbilang(n // 1000000) + " Juta " + terbilang(n % 1000000)
-    elif n < 1000000000000:
-        return terbilang(n // 1000000000) + " Milyar " + terbilang(n % 1000000000)
-    else:
-        return terbilang(n // 1000000000000) + " Triliun " + terbilang(n % 1000000000000)
+    if n < 12: return satuan[n]
+    elif n < 20: return terbilang(n - 10) + " Belas"
+    elif n < 100: return terbilang(n // 10) + " Puluh " + terbilang(n % 10)
+    elif n < 200: return "Seratus " + terbilang(n - 100)
+    elif n < 1000: return terbilang(n // 100) + " Ratus " + terbilang(n % 100)
+    elif n < 2000: return "Seribu " + terbilang(n - 1000)
+    elif n < 1000000: return terbilang(n // 1000) + " Ribu " + terbilang(n % 1000)
+    elif n < 1000000000: return terbilang(n // 1000000) + " Juta " + terbilang(n % 1000000)
+    elif n < 1000000000000: return terbilang(n // 1000000000) + " Milyar " + terbilang(n % 1000000000)
+    else: return terbilang(n // 1000000000000) + " Triliun " + terbilang(n % 1000000000000)
 
 LIST_MUTU_OPTIONS = [
     'B0 Slump 12 ± 2', 'K100 Slump 12 ± 2', 'K125 Slump 12 ± 2', 'K150 Slump 12 ± 2',
@@ -290,6 +285,7 @@ DEFAULT_PLANT_PARAMS = {
     'kapasitas_tm_std': 6.0
 }
 
+# Inisialisasi Session State
 if 'plant_params' not in st.session_state:
     st.session_state.plant_params = DEFAULT_PLANT_PARAMS.copy()
 
@@ -304,11 +300,35 @@ if 'selected_order_mutu' not in st.session_state:
         'K500 Slump 12 ± 2'
     ]
 
-# Header Utama
-st.title("🏗️ Kalkulator Kelayakan Harga Jual Retail Beton Readymix")
+# DATABASE ORDER DEAL (BOOKING KAPASITAS)
+if 'database_deal' not in st.session_state:
+    st.session_state.database_deal = []
+
+# Hitung Total Volume yang Sudah Deal & Sisa Kapasitas BP
+vol_deal_terpakai = sum(item['Total Volume (m³)'] for item in st.session_state.database_deal)
+kapasitas_awal = float(st.session_state.plant_params['kapasitas'])
+sisa_kapasitas_tersedia = max(0.0, kapasitas_awal - vol_deal_terpakai)
+
+# ==============================================================================
+# HEADER
+# ==============================================================================
+if FILE_LOGO:
+    c_logo, c_title = st.columns([1.2, 10])
+    with c_logo:
+        st.image(FILE_LOGO, width=110)
+    with c_title:
+        st.markdown("<h1 class='main-title-text' style='margin-top: 8px;'>Kalkulator Kelayakan Harga Jual Retail Beton Readymix</h1>", unsafe_allow_html=True)
+else:
+    st.markdown("<h1 class='main-title-text'>🚛 Kalkulator Kelayakan Harga Jual Retail Beton Readymix</h1>", unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
+    st.markdown("### 🏭 Status Kapasitas Batching Plant")
+    st.metric("Kapasitas Terpasang", f"{format_angka(kapasitas_awal)} m³")
+    st.metric("Total Ter-booking (Deal)", f"{format_angka(vol_deal_terpakai)} m³", delta=f"{len(st.session_state.database_deal)} Customer")
+    st.metric("Sisa Kapasitas Tersedia", f"{format_angka(sisa_kapasitas_tersedia)} m³", delta_color="normal")
+    st.markdown("---")
+    
     st.markdown("### 🔄 Kontrol Sesi")
     if st.button("Reset ke Nilai Kertas Kerja Excel", use_container_width=True):
         st.session_state.plant_params = DEFAULT_PLANT_PARAMS.copy()
@@ -321,15 +341,16 @@ with st.sidebar:
         ]
         st.rerun()
 
-    st.markdown("---")
     if st.button("🚪 Logout / Kunci Aplikasi", use_container_width=True):
         st.session_state["authenticated"] = False
         st.rerun()
 
-tab_setting, tab_evaluasi, tab_customer_report = st.tabs([
+# 4 TABS LENGKAP
+tab_setting, tab_evaluasi, tab_customer_report, tab_database_deal = st.tabs([
     "⚙️ Parameter & Acuan Batching Plant",
     "📊 Evaluasi Penawaran Proyek",
-    "📄 Surat Penawaran Pelanggan"
+    "📄 Surat Penawaran Pelanggan",
+    f"📁 Database Order Deal ({len(st.session_state.database_deal)})"
 ])
 
 p = st.session_state.plant_params
@@ -343,7 +364,7 @@ with tab_setting:
     with st.form("form_plant"):
         c1, c2, c3, c4, c5 = st.columns([1.5, 1.2, 1.4, 1.0, 1.1])
         nama_bp = c1.text_input("Unit Batching Plant", value=p['nama_bp'])
-        kap_prod = c2.number_input("Kapasitas (m³)", value=float(p['kapasitas']), step=100.0)
+        kap_prod = c2.number_input("Kapasitas Dasar (m³)", value=float(p['kapasitas']), step=100.0)
         c2.markdown(f"<div class='val-helper'>🔍 {format_angka(kap_prod)} m³</div>", unsafe_allow_html=True)
 
         fc = c3.number_input("Biaya Tetap / FC (Rp)", value=float(p['fixed_cost']), step=1000000.0)
@@ -377,7 +398,6 @@ with tab_setting:
     col_t1, col_t2 = st.columns([3, 1])
     with col_t1:
         st.markdown("#### 🧱 Master Biaya COGM & Efisiensi per Mutu Beton")
-        st.caption("Kelola nilai COGM & Efisiensi per mutu. Pilihan Jenis Beton & Peruntukan Struktur akan ditentukan di Tab Evaluasi Penawaran.")
     with col_t2:
         if st.button("➕ Tambah 1 Baris Baru"):
             new_no = len(st.session_state.master_table_data) + 1
@@ -404,32 +424,10 @@ with tab_setting:
         num_rows="dynamic",
         hide_index=True,
         column_config={
-            'No.': st.column_config.NumberColumn(
-                label="No.",
-                width=45,
-                disabled=True
-            ),
-            'Mutu Beton': st.column_config.SelectboxColumn(
-                label="Mutu Beton",
-                help="Pilih mutu beton dari dropdown",
-                width="large",
-                options=LIST_MUTU_OPTIONS,
-                required=False
-            ),
-            'COGM (Rp/m³)': st.column_config.NumberColumn(
-                label="COGM (Rp/m³)",
-                format="Rp %,d",
-                width="small",
-                step=1000,
-                required=True
-            ),
-            'Efisiensi (Rp/m³)': st.column_config.NumberColumn(
-                label="Efisiensi (Rp/m³)",
-                format="Rp %,d",
-                width="small",
-                step=500,
-                required=True
-            )
+            'No.': st.column_config.NumberColumn(label="No.", width=45, disabled=True),
+            'Mutu Beton': st.column_config.SelectboxColumn(label="Mutu Beton", width="large", options=LIST_MUTU_OPTIONS),
+            'COGM (Rp/m³)': st.column_config.NumberColumn(label="COGM (Rp/m³)", format="Rp %,d", width="small", step=1000),
+            'Efisiensi (Rp/m³)': st.column_config.NumberColumn(label="Efisiensi (Rp/m³)", format="Rp %,d", width="small", step=500)
         }
     )
 
@@ -437,11 +435,7 @@ with tab_setting:
         cleaned_df = edited_master_df.copy()
         cleaned_df['No.'] = range(1, len(cleaned_df) + 1)
         st.session_state.master_table_data = cleaned_df.to_dict('records')
-        st.session_state['master_saved_success'] = True
-
-    if st.session_state.get('master_saved_success', False):
         st.success("Tabel Master Mutu Beton berhasil diperbarui!")
-        st.session_state['master_saved_success'] = False
 
 active_master_dict = {}
 for r in st.session_state.master_table_data:
@@ -478,7 +472,6 @@ with tab_evaluasi:
             slump_req = st.number_input("Slump Diminta (cm)", min_value=0.0, value=15.0, step=1.0)
             muatan_req = st.number_input("Muatan per Rit (m³)", min_value=1.0, max_value=10.0, value=4.0, step=1.0)
 
-    # Deviasi Biaya (A, B, C) Persis Formula Excel:
     selisih_jarak = max(0.0, jarak_proyek - p['jarak_std'])
     biaya_tambah_jarak = selisih_jarak * p['koef_solar_jarak'] * p['harga_solar']
 
@@ -495,7 +488,6 @@ with tab_evaluasi:
 
     st.markdown("---")
     st.markdown("#### 📋 2. Rincian Order, Spesifikasi & Penentuan Harga")
-    st.caption("Pilih jenis beton dan peruntukan struktur secara langsung di bawah ini untuk setiap mutu yang dipesan:")
     
     valid_defaults = [x for x in st.session_state.selected_order_mutu if x in daftar_mutu_aktif]
     pilihan_mutu = st.multiselect(
@@ -517,20 +509,15 @@ with tab_evaluasi:
         cols_grid[5].markdown("**HPP (Rp/m³)**")
 
         default_vol_map = {
-            'K100 Slump 12 ± 2': 1000.0,
-            'K250 Slump 12 ± 2': 1000.0,
-            'K350 Slump 12 ± 2': 1000.0,
-            'K500 Slump 12 ± 2': 1000.0
+            'K100 Slump 12 ± 2': 1000.0, 'K250 Slump 12 ± 2': 1000.0,
+            'K350 Slump 12 ± 2': 1000.0, 'K500 Slump 12 ± 2': 1000.0
         }
         default_price_map = {
-            'K100 Slump 12 ± 2': 1165000.0,
-            'K250 Slump 12 ± 2': 1275000.0,
-            'K350 Slump 12 ± 2': 1383000.0,
-            'K500 Slump 12 ± 2': 1403000.0
+            'K100 Slump 12 ± 2': 1165000.0, 'K250 Slump 12 ± 2': 1275000.0,
+            'K350 Slump 12 ± 2': 1383000.0, 'K500 Slump 12 ± 2': 1403000.0
         }
 
         persen_komp_s = p.get('komponen_s', 1.0) / 100.0
-
         item_no = 1
         for prod_name in pilihan_mutu:
             prod_info = active_master_dict.get(prod_name, {'cogm': 1000000.0, 'efisiensi': 15000.0})
@@ -539,36 +526,18 @@ with tab_evaluasi:
             hpp = c + biaya_tambah_jarak + biaya_tambah_slump + biaya_tambah_muatan - d
 
             col_a, col_b, col_c, col_d, col_e, col_f = st.columns([2.5, 2.0, 2.5, 1.5, 2.0, 1.5])
-            
-            with col_a:
-                st.markdown(f"**{prod_name}**")
+            with col_a: st.markdown(f"**{prod_name}**")
 
             hint_jenis, hint_struct = DEFAULT_STRUCT_HINT.get(prod_name, ('Beton Normal', 'Beton bertulang, beton pracetak'))
-
             with col_b:
                 idx_jns = LIST_JENIS_BETON.index(hint_jenis) if hint_jenis in LIST_JENIS_BETON else 0
-                selected_jenis = st.selectbox(
-                    f"Jenis {prod_name}",
-                    options=LIST_JENIS_BETON,
-                    index=idx_jns,
-                    key=f"jns_{prod_name}",
-                    label_visibility="collapsed"
-                )
-
+                selected_jenis = st.selectbox(f"Jenis {prod_name}", LIST_JENIS_BETON, index=idx_jns, key=f"jns_{prod_name}", label_visibility="collapsed")
             with col_c:
                 idx_struct = LIST_PERUNTUKAN.index(hint_struct) if hint_struct in LIST_PERUNTUKAN else 0
-                selected_struktur = st.selectbox(
-                    f"Struktur {prod_name}",
-                    options=LIST_PERUNTUKAN,
-                    index=idx_struct,
-                    key=f"str_{prod_name}",
-                    label_visibility="collapsed"
-                )
-
+                selected_struktur = st.selectbox(f"Struktur {prod_name}", LIST_PERUNTUKAN, index=idx_struct, key=f"str_{prod_name}", label_visibility="collapsed")
             with col_d:
-                init_vol = default_vol_map.get(prod_name, 1000.0)
+                init_vol = default_vol_map.get(prod_name, 500.0)
                 vol = st.number_input(f"Vol {prod_name}", min_value=0.0, value=init_vol, step=10.0, key=f"v_{prod_name}", label_visibility="collapsed")
-
             with col_e:
                 if mode_harga == "Otomatis (Standar Margin Target %)":
                     margin_input = st.number_input(f"Margin {prod_name}", value=p['margin_std'], step=0.5, key=f"m_{prod_name}", label_visibility="collapsed")
@@ -580,7 +549,6 @@ with tab_evaluasi:
                     harga_jual = st.number_input(f"Harga Custom {prod_name}", value=init_price, step=1000.0, key=f"hc_{prod_name}", label_visibility="collapsed")
                     margin_input = ((harga_jual - hpp) / harga_jual * 100.0) if harga_jual > 0 else 0.0
                     st.caption(f"💡 {rupiah(harga_jual)} ({margin_input:.1f}%)")
-
             with col_f:
                 st.write(rupiah(hpp))
 
@@ -591,12 +559,9 @@ with tab_evaluasi:
                 proporsional_fc = (p['fixed_cost'] / p['kapasitas']) * vol
                 laba_prop = total_mk - proporsional_fc - biaya_komp_s
                 
-                if harga_jual <= hpp:
-                    status = "❌ Tolak / Rugi Variabel"
-                elif laba_prop >= 0:
-                    status = "✅ Sangat Layak (Laba Penuh)"
-                else:
-                    status = "⚠️ Layak (Bantu Biaya Tetap)"
+                if harga_jual <= hpp: status = "❌ Tolak / Rugi Variabel"
+                elif laba_prop >= 0: status = "✅ Sangat Layak (Laba Penuh)"
+                else: status = "⚠️ Layak (Bantu Biaya Tetap)"
 
                 bep_vol = (p['fixed_cost'] / margin_kontribusi) if margin_kontribusi > 0 else 0
                 pendapatan = vol * harga_jual
@@ -633,9 +598,16 @@ with tab_evaluasi:
             tot_mk = df_order['Total Margin Kontribusi'].sum()
             tot_var = df_order['Total Biaya Variabel'].sum()
             tot_komp_s = df_order['Biaya Komponen S (Rp)'].sum()
-            
             tot_biaya = tot_var + p['fixed_cost'] + tot_komp_s
             laba_bersih = tot_pendapatan - tot_biaya
+
+            # ==================================================================
+            # MONITORING KELAYAKAN SISA KAPASITAS BATCHING PLANT
+            # ==================================================================
+            if tot_vol > sisa_kapasitas_tersedia:
+                st.error(f"🚨 **PERINGATAN KAPASITAS PABRIK MELEBIHI BATAS!**\n\nVolume yang diminta pelanggan ini (**{format_angka(tot_vol)} m³**) melebihi sisa kapasitas batching plant yang tersedia (**{format_angka(sisa_kapasitas_tersedia)} m³** dari kapasitas total {format_angka(kapasitas_awal)} m³).")
+            else:
+                st.success(f"✅ **Kapasitas BP Mencukupi:** Volume order (**{format_angka(tot_vol)} m³**) masih dalam batas sisa kapasitas tersedia (**{format_angka(sisa_kapasitas_tersedia)} m³**).")
 
             k1, k2, k3, k4, k5 = st.columns([1.3, 1.2, 1.2, 1.2, 1.1])
             k1.metric("Total Pendapatan", rupiah(tot_pendapatan), f"Volume: {format_angka(tot_vol)} m³")
@@ -645,23 +617,7 @@ with tab_evaluasi:
             k5.metric("Kelayakan", "Sangat Layak" if laba_bersih >= 0 else ("Layak (Bantu FC)" if tot_mk > 0 else "Tolak"))
 
             st.markdown("##### Tabel Evaluasi Kelayakan per Produk:")
-            df_view = df_order[[
-                'No.', 
-                'Jenis Beton',
-                'Jenis Struktur',
-                'Mutu Beton', 
-                'Vol Order (m³)', 
-                'HPP', 
-                'Harga Jual', 
-                'Margin (%)', 
-                'Total Margin Kontribusi', 
-                'Biaya Komponen S (Rp)', 
-                'Laba Operasi Proporsional Proyek (Rp)', 
-                'Status', 
-                'BEP Volume (m³)', 
-                'Total Pendapatan (Rp)'
-            ]].copy()
-
+            df_view = df_order[['No.', 'Jenis Beton', 'Jenis Struktur', 'Mutu Beton', 'Vol Order (m³)', 'HPP', 'Harga Jual', 'Margin (%)', 'Total Margin Kontribusi', 'Biaya Komponen S (Rp)', 'Laba Operasi Proporsional Proyek (Rp)', 'Status', 'BEP Volume (m³)', 'Total Pendapatan (Rp)']].copy()
             df_view['Vol Order (m³)'] = df_view['Vol Order (m³)'].apply(lambda x: f"{format_angka(x)} m³")
             df_view['HPP'] = df_view['HPP'].apply(rupiah)
             df_view['Harga Jual'] = df_view['Harga Jual'].apply(rupiah)
@@ -671,8 +627,28 @@ with tab_evaluasi:
             df_view['Margin (%)'] = df_view['Margin (%)'].apply(lambda x: f"{x:.1f}%")
             df_view['BEP Volume (m³)'] = df_view['BEP Volume (m³)'].apply(lambda x: f"{format_angka(x)} m³")
             df_view['Total Pendapatan (Rp)'] = df_view['Total Pendapatan (Rp)'].apply(rupiah)
-            
             st.dataframe(df_view, use_container_width=True, hide_index=True)
+
+            # TOMBOL SIMPAN KE DATABASE DEAL
+            st.markdown("---")
+            col_save1, col_save2 = st.columns([2, 1])
+            with col_save1:
+                st.markdown("##### 🤝 Simpan Transaksi ke Database Order Deal")
+                st.caption(f"Jika customer **{nama_cust}** deal membeli dengan volume **{format_angka(tot_vol)} m³**, klik tombol di sebelah kanan untuk membukukan order ini dan mengurangi sisa kapasitas BP.")
+            with col_save2:
+                if st.button("💾 Simpan Order Ini Sebagai DEAL", use_container_width=True, type="primary"):
+                    st.session_state.database_deal.append({
+                        'Waktu Deal': datetime.now().strftime("%d-%m-%Y %H:%M"),
+                        'Nama Customer': nama_cust,
+                        'Nama Proyek': nama_proyek,
+                        'Total Volume (m³)': float(tot_vol),
+                        'Total Nilai Deal (Rp)': float(tot_pendapatan),
+                        'Margin Kontribusi (Rp)': float(tot_mk),
+                        'Laba Operasi (Rp)': float(laba_bersih),
+                        'Detail Produk': ", ".join([f"{r['Mutu Beton']} ({format_angka(r['Vol Order (m³)'])} m³)" for _, r in df_order.iterrows()])
+                    })
+                    st.success(f"🎉 Order an. {nama_cust} ({format_angka(tot_vol)} m³) berhasil disimpan ke Database Deal!")
+                    st.rerun()
     else:
         st.info("Pilih minimal satu mutu beton di atas untuk melakukan kalkulasi order.")
 
@@ -681,7 +657,6 @@ with tab_evaluasi:
 # ==============================================================================
 with tab_customer_report:
     df_order = pd.DataFrame(order_records)
-    
     col_head1, col_head2 = st.columns([2.5, 1.5])
     with col_head1:
         st.subheader("📑 Surat Penawaran Harga (Customer Quotation)")
@@ -752,9 +727,7 @@ with tab_customer_report:
                 <th style="text-align: right;">Jumlah Harga (Rp)</th>
             </tr>
         </thead>
-        <tbody>
-            {rows_html}
-        </tbody>
+        <tbody>{rows_html}</tbody>
     </table>
 
     <div class="summary-box">
@@ -787,38 +760,17 @@ with tab_customer_report:
                 label="📥 Unduh Surat Penawaran (PDF / Cetak)",
                 data=html_quotation.encode('utf-8'),
                 file_name=f"Penawaran_Readymix_{nama_cust}.html",
-                mime="text/html",
-                help="Klik untuk mengunduh penawaran. Buka filenya, menu cetak & Simpan ke PDF akan otomatis muncul!"
+                mime="text/html"
             )
 
         st.markdown(f"""
         <div class="info-box-wrapper">
             <table class="info-table">
-                <tr>
-                    <td class="label-col">Customer</td>
-                    <td class="sep-col">:</td>
-                    <td class="val-col">{nama_cust} ({hp_cust})</td>
-                </tr>
-                <tr>
-                    <td class="label-col">Nama Proyek</td>
-                    <td class="sep-col">:</td>
-                    <td class="val-col">{nama_proyek}</td>
-                </tr>
-                <tr>
-                    <td class="label-col">Unit BP</td>
-                    <td class="sep-col">:</td>
-                    <td class="val-col">{p['nama_bp']}</td>
-                </tr>
-                <tr>
-                    <td class="label-col">Jarak Tempuh</td>
-                    <td class="sep-col">:</td>
-                    <td class="val-col">{format_angka(jarak_proyek, 1)} km</td>
-                </tr>
-                <tr>
-                    <td class="label-col">Cara Pembayaran</td>
-                    <td class="sep-col">:</td>
-                    <td class="val-col">{cara_bayar}</td>
-                </tr>
+                <tr><td class="label-col">Customer</td><td class="sep-col">:</td><td class="val-col">{nama_cust} ({hp_cust})</td></tr>
+                <tr><td class="label-col">Nama Proyek</td><td class="sep-col">:</td><td class="val-col">{nama_proyek}</td></tr>
+                <tr><td class="label-col">Unit BP</td><td class="sep-col">:</td><td class="val-col">{p['nama_bp']}</td></tr>
+                <tr><td class="label-col">Jarak Tempuh</td><td class="sep-col">:</td><td class="val-col">{format_angka(jarak_proyek, 1)} km</td></tr>
+                <tr><td class="label-col">Cara Pembayaran</td><td class="sep-col">:</td><td class="val-col">{cara_bayar}</td></tr>
             </table>
         </div>
         """, unsafe_allow_html=True)
@@ -867,4 +819,43 @@ with tab_customer_report:
         4. Pembayaran dapat dilakukan dengan transfer ke nomor rekening: **0710201400001** a.n. **PT. Waskita Beton Precast Tbk**, **Bank BJB Jabar dan Banten**.
         """)
     else:
-        st.warning("Belum ada data pemesanan yang aktif. Silakan pilih mutu beton dan isi volume di tab Evaluasi Penawaran Proyek.")
+        st.warning("Belum ada data pemesanan yang aktif.")
+
+# ==============================================================================
+# TAB 4: DATABASE ORDER DEAL & TRACKING KAPASITAS (BARU)
+# ==============================================================================
+with tab_database_deal:
+    st.subheader("📁 Database Penjualan Deal & Kontrol Kapasitas Produksi")
+    
+    col_d1, col_d2, col_d3 = st.columns(3)
+    col_d1.metric("Kapasitas Terpasang BP", f"{format_angka(kapasitas_awal)} m³")
+    col_d2.metric("Total Kapasitas Terpakai", f"{format_angka(vol_deal_terpakai)} m³", f"{(vol_deal_terpakai/kapasitas_awal*100):.1f}% Utilisasi")
+    col_d3.metric("Sisa Kapasitas Siap Jual", f"{format_angka(sisa_kapasitas_tersedia)} m³", delta=f"{format_angka(sisa_kapasitas_tersedia)} m³ sisa", delta_color="normal")
+
+    st.markdown("---")
+
+    if st.session_state.database_deal:
+        df_deal_display = pd.DataFrame(st.session_state.database_deal)
+        
+        # Format tampilan tabel deal
+        df_show = df_deal_display.copy()
+        df_show['No.'] = range(1, len(df_show) + 1)
+        df_show['Total Volume (m³)'] = df_show['Total Volume (m³)'].apply(lambda x: f"{format_angka(x)} m³")
+        df_show['Total Nilai Deal (Rp)'] = df_show['Total Nilai Deal (Rp)'].apply(rupiah)
+        df_show['Margin Kontribusi (Rp)'] = df_show['Margin Kontribusi (Rp)'].apply(rupiah)
+        df_show['Laba Operasi (Rp)'] = df_show['Laba Operasi (Rp)'].apply(rupiah)
+
+        st.dataframe(df_show[['No.', 'Waktu Deal', 'Nama Customer', 'Nama Proyek', 'Total Volume (m³)', 'Total Nilai Deal (Rp)', 'Margin Kontribusi (Rp)', 'Laba Operasi (Rp)', 'Detail Produk']], use_container_width=True, hide_index=True)
+
+        st.markdown("#### 🗑️ Batalkan / Hapus Transaksi Deal")
+        cust_list = [f"{i+1}. {item['Nama Customer']} - {item['Nama Proyek']} ({format_angka(item['Total Volume (m³)'])} m³)" for i, item in enumerate(st.session_state.database_deal)]
+        pilih_hapus = st.selectbox("Pilih Order yang ingin dibatalkan / dihapus:", cust_list)
+        
+        if st.button("❌ Batalkan Order Ini & Kembalikan Kapasitas"):
+            idx_del = cust_list.index(pilih_hapus)
+            cust_name_del = st.session_state.database_deal[idx_del]['Nama Customer']
+            del st.session_state.database_deal[idx_del]
+            st.success(f"Order an. {cust_name_del} berhasil dihapus. Sisa kapasitas BP bertambah kembali!")
+            st.rerun()
+    else:
+        st.info("💡 Belum ada customer yang berstatus DEAL. Ketika penawaran pada Tab 2 disepakati pembeli, klik tombol **'Simpan Order Ini Sebagai DEAL'** untuk otomatis mengurangi kuota kapasitas produksi BP.")
