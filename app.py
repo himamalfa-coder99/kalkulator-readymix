@@ -63,7 +63,7 @@ logo_base64 = get_base64_image(FILE_LOGO)
 # PROTEKSI LOGIN
 # ==============================================================================
 def check_password():
-    PASSWORD_RAHASIA = "waskita123"
+    PASSWORD_RAHASIA = "123"
     if st.session_state.get("authenticated", False):
         return True
 
