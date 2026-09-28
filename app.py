@@ -1,12 +1,88 @@
 import streamlit as st
 import pandas as pd
 import math
+import base64
+import os
 
 st.set_page_config(
     page_title="Kalkulator Kelayakan Harga Jual Retail Beton Readymix",
     page_icon="🏗️",
     layout="wide"
 )
+
+# ==============================================================================
+# FUNGSI MEMBACA FOTO LOKAL SEBAGAI BACKGROUND
+# ==============================================================================
+def set_background(image_file):
+    """Memasang file gambar lokal sebagai background seluruh halaman web."""
+    if os.path.exists(image_file):
+        with open(image_file, "rb") as f:
+            encoded_string = base64.b64encode(f.read()).decode()
+        
+        # Ekstensi file
+        ext = image_file.split('.')[-1]
+        
+        st.markdown(f"""
+        <style>
+            .stApp {{
+                background: linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)), 
+                            url("data:image/{ext};base64,{encoded_string}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+            }}
+            /* Tambahan transparansi pada sidebar */
+            [data-testid="stSidebar"] {{
+                background-color: rgba(248, 250, 252, 0.92) !important;
+            }}
+        </style>
+        """, unsafe_allow_html=True)
+
+# Nama file gambar (sesuaikan dengan nama file fotomu, misal background.jpg atau background.png)
+NAMA_FILE_FOTO = "background.jpg"
+set_background(NAMA_FILE_FOTO)
+
+# ==============================================================================
+# SISTEM PROTEKSI PASSWORD / LOGIN
+# ==============================================================================
+def check_password():
+    """Mengembalikan True jika user sudah berhasil login dengan password yang benar."""
+    PASSWORD_RAHASIA = "waskita123"  # Silakan ganti kata sandi ini sesuai kebutuhan
+
+    if st.session_state.get("authenticated", False):
+        return True
+
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+    col_kiri, col_tengah, col_kanan = st.columns([1, 1.2, 1])
+    
+    with col_tengah:
+        st.markdown("""
+        <div style='background: rgba(255, 255, 255, 0.95); border: 1px solid #cbd5e1; border-radius: 12px; padding: 28px 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>
+            <h3 style='text-align: center; color: #1e3a8a; margin-top: 0;'>🔒 Akses Terbatas</h3>
+            <p style='text-align: center; color: #64748b; font-size: 14px;'>Silakan masukkan password untuk membuka Kalkulator Kelayakan Harga Readymix</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("form_login"):
+            input_pwd = st.text_input("Password", type="password", placeholder="Masukkan password...")
+            submit_login = st.form_submit_button("Masuk / Buka Kalkulator", use_container_width=True)
+            
+            if submit_login:
+                if input_pwd == PASSWORD_RAHASIA:
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                else:
+                    st.error("❌ Password salah! Silakan coba lagi.")
+                    
+    return False
+
+if not check_password():
+    st.stop()
+
+# ==============================================================================
+# APLIKASI UTAMA (SETELAH BERHASIL LOGIN)
+# ==============================================================================
 
 # Styling CSS Bersih, Proporsional, & Perbaikan Font Metric
 st.markdown("""
@@ -23,6 +99,7 @@ st.markdown("""
     
     .stNumberInput input, .stTextInput input {
         height: 42px !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
     }
 
     [data-testid="stMetricValue"] > div {
@@ -41,7 +118,7 @@ st.markdown("""
     }
 
     .metric-card {
-        background: #f8fafc;
+        background: rgba(248, 250, 252, 0.95);
         border-radius: 8px;
         padding: 12px 16px;
         border-left: 4px solid #2563eb;
@@ -72,21 +149,21 @@ st.markdown("""
         font-weight: 500;
     }
     .info-box-wrapper {
-        background-color: #f0f7ff;
+        background-color: rgba(240, 247, 255, 0.95);
         border: 1px solid #bfdbfe;
         border-radius: 8px;
         padding: 14px 18px;
         margin-bottom: 15px;
     }
     .invoice-box {
-        background-color: #f8fafc;
+        background-color: rgba(248, 250, 252, 0.95);
         border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 14px 18px;
         margin-top: 10px;
     }
     .terbilang-box {
-        background-color: #eff6ff;
+        background-color: rgba(239, 246, 255, 0.95);
         border-left: 4px solid #3b82f6;
         padding: 10px 14px;
         border-radius: 4px;
@@ -161,7 +238,6 @@ LIST_PERUNTUKAN = [
     'Struktur Khusus / Lainnya'
 ]
 
-# Database Master Acuan
 DEFAULT_MASTER_LIST = [
     {'No.': 1, 'Mutu Beton': 'B0 Slump 12 ± 2', 'COGM (Rp/m³)': 920000.0, 'Efisiensi (Rp/m³)': 12000.0},
     {'No.': 2, 'Mutu Beton': 'K100 Slump 12 ± 2', 'COGM (Rp/m³)': 987208.0, 'Efisiensi (Rp/m³)': 14000.0},
@@ -231,10 +307,10 @@ if 'selected_order_mutu' not in st.session_state:
 # Header Utama
 st.title("🏗️ Kalkulator Kelayakan Harga Jual Retail Beton Readymix")
 
-# Sidebar Reset Sesi
+# Sidebar
 with st.sidebar:
     st.markdown("### 🔄 Kontrol Sesi")
-    if st.button("Reset ke Nilai Kertas Kerja Excel"):
+    if st.button("Reset ke Nilai Kertas Kerja Excel", use_container_width=True):
         st.session_state.plant_params = DEFAULT_PLANT_PARAMS.copy()
         st.session_state.master_table_data = [dict(x) for x in DEFAULT_MASTER_LIST]
         st.session_state.selected_order_mutu = [
@@ -243,6 +319,11 @@ with st.sidebar:
             'K350 Slump 12 ± 2',
             'K500 Slump 12 ± 2'
         ]
+        st.rerun()
+
+    st.markdown("---")
+    if st.button("🚪 Logout / Kunci Aplikasi", use_container_width=True):
+        st.session_state["authenticated"] = False
         st.rerun()
 
 tab_setting, tab_evaluasi, tab_customer_report = st.tabs([
@@ -491,7 +572,6 @@ with tab_evaluasi:
             with col_e:
                 if mode_harga == "Otomatis (Standar Margin Target %)":
                     margin_input = st.number_input(f"Margin {prod_name}", value=p['margin_std'], step=0.5, key=f"m_{prod_name}", label_visibility="collapsed")
-                    # ROUNDUP ke ribuan terdekat sesuai Excel
                     raw_harga = (hpp / (1 - (margin_input / 100.0))) if (1 - (margin_input / 100.0)) > 0 else 0
                     harga_jual = math.ceil(raw_harga / 1000.0) * 1000.0
                     st.caption(f"💡 {rupiah(harga_jual)}")
@@ -505,7 +585,6 @@ with tab_evaluasi:
                 st.write(rupiah(hpp))
 
             if vol > 0:
-                # Rumus Sesuai Lembar Excel Foto 3:
                 margin_kontribusi = harga_jual - hpp
                 total_mk = vol * margin_kontribusi
                 biaya_komp_s = persen_komp_s * harga_jual * vol
@@ -555,7 +634,6 @@ with tab_evaluasi:
             tot_var = df_order['Total Biaya Variabel'].sum()
             tot_komp_s = df_order['Biaya Komponen S (Rp)'].sum()
             
-            # Total Biaya & Laba Operasi Persis Sesuai Excel Foto 3:
             tot_biaya = tot_var + p['fixed_cost'] + tot_komp_s
             laba_bersih = tot_pendapatan - tot_biaya
 
@@ -576,8 +654,8 @@ with tab_evaluasi:
                 'HPP', 
                 'Harga Jual', 
                 'Margin (%)', 
-                'Total Margin Kontribusi',
-                'Biaya Komponen S (Rp)',
+                'Total Margin Kontribusi', 
+                'Biaya Komponen S (Rp)', 
                 'Laba Operasi Proporsional Proyek (Rp)', 
                 'Status', 
                 'BEP Volume (m³)', 
