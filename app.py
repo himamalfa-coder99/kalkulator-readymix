@@ -48,7 +48,7 @@ set_background(NAMA_FILE_FOTO)
 # ==============================================================================
 def check_password():
     """Mengembalikan True jika user sudah berhasil login dengan password yang benar."""
-    PASSWORD_RAHASIA = "waskita123"  # Silakan ganti kata sandi ini sesuai kebutuhan
+    PASSWORD_RAHASIA = "123"  # Silakan ganti kata sandi ini sesuai kebutuhan
 
     if st.session_state.get("authenticated", False):
         return True
